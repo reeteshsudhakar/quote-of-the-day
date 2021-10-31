@@ -3,7 +3,7 @@ import requests
 import schedule
 import time
 import subprocess
-import util
+import info
 import pickle
 import base64
 import os
@@ -28,7 +28,7 @@ def create_message(to, subject, message):
     """
     message = MIMEMultipart()
     message['to'] = to
-    message['from'] = util.email_address
+    message['from'] = info.email_address
     message['subject'] = subject
 
     aMessage = MIMEText(message)
@@ -38,7 +38,7 @@ def create_message(to, subject, message):
 
 def send_email(provider, message):
     try: 
-        message = provider.users().messages().send(userId=util.email_address, body=message).execute()
+        message = provider.users().messages().send(userId=info.email_address, body=message).execute()
         print('Message ID: %s' % message['id'])
         print("Message has been successfully sent!")
         return message
@@ -47,7 +47,7 @@ def send_email(provider, message):
         return None
 
 def send_message(message):
-    subprocess.call("osascript sendMessage.applescript '%s' '%s'" % (f'{util.phone}', f'{message}'), shell=True)
+    subprocess.call("osascript sendMessage.applescript '%s' '%s'" % (f'{info.phone}', f'{message}'), shell=True)
 
 def get_affirmation():
     return requests.get('https://www.affirmations.dev/random').text
@@ -70,14 +70,14 @@ def email_message(message):
 
     service = build('gmail', 'v1', credentials=credits)
 
-    message = create_message(f'{util.phone}{util.carrier}', 'Affirmation', message)
+    message = create_message(f'{info.phone}{info.carrier}', 'Affirmation', message)
     send_email(service, message)
 
 def job():
     try:
         affirmation = get_affirmation()
         if affirmation != '':
-            if util.mac:
+            if info.mac:
                 send_message(affirmation)
             else:
                 email_message(affirmation)
@@ -85,3 +85,10 @@ def job():
             print("Error has occurred, please try again.")
     except Exception as e:
         print("An error has occurred: %s" % e)
+
+if __name__ == "__main__":
+    schedule.every().day.at(info.time).do(job)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
