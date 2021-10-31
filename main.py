@@ -38,10 +38,50 @@ def create_message(to, subject, message):
 
 def send_email(provider, message):
     try: 
-        message = service.users().messages().send(userId=util.email_address, body=message).execute()
+        message = provider.users().messages().send(userId=util.email_address, body=message).execute()
         print('Message ID: %s' % message['id'])
         print("Message has been successfully sent!")
         return message
     except Exception as e:
         print("An error has occurred: %s" % e)
         return None
+
+def send_message(message):
+    subprocess.call("osascript sendMessage.applescript '%s' '%s'" % (f'{util.phone}', f'{message}'), shell=True)
+
+def get_affirmation():
+    return requests.get('https://www.affirmations.dev/random').text
+
+def email_message(message):
+    credits = None
+
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            credits = pickle.load(token)
+    if not credits or not credits.valid:
+        if credits and credits.expired and credits.refresh_token:
+            credits.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            credits = flow.run_local_server(port=5000)
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(credits, token)
+
+    service = build('gmail', 'v1', credentials=credits)
+
+    message = create_message(f'{util.phone}{util.carrier}', 'Affirmation', message)
+    send_email(service, message)
+
+def job():
+    try:
+        affirmation = get_affirmation()
+        if affirmation != '':
+            if util.mac:
+                send_message(affirmation)
+            else:
+                email_message(affirmation)
+        else:
+            print("Error has occurred, please try again.")
+    except Exception as e:
+        print("An error has occurred: %s" % e)
