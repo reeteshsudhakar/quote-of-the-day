@@ -64,7 +64,7 @@ def email_message(message):
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json', SCOPES)
-            credits = flow.run_local_server(port=5000)
+            credits = flow.run_local_server(port=3000)
         with open('token.pickle', 'wb') as token:
             pickle.dump(credits, token)
 
